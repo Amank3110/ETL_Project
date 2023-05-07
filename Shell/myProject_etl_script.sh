@@ -64,4 +64,4 @@ STEP_NUMBER='5'
         log_error $STEP_NUMBER "Failed to load data into FINAL_FRIENDS_DATA table"
         exit 1
     fi
-    log_error "Successfully Load into FINAL_FRIENDS_DATA $(date +%Y%m%d%H%M%S)"
+    echo "Successfully Load Data into FINAL_FRIENDS_DATA at $(date +%Y%m%d%H%M%S)"
