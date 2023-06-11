@@ -1,10 +1,10 @@
 from configparser import ConfigParser
-from api_call import ApiCall
 from datetime import datetime
 from s3_transfer import S3Transfer
 import os
 import io
-import sys
+import json
+import requests
 import pandas as pd
 
 
@@ -59,29 +59,58 @@ class Utilities:
                     pass
         return None
 
-    # split files based on common dates
-    def split_by_date(self, file_name, date_column):
-        file_path = file_name
-        date = date_column
-        df = pd.read_csv(file_path, parse_dates=[date], infer_datetime_format=True)
-        for i, j in df.groupby(date_column):
-            split_file_name = i.replace('[/-]', '', regex=True)
-            csv_file = j.to_csv(f'{split_file_name}.csv', index=False, compression='csv')
+    # Fetch data from an API
+    def request_api_data(self):
+        try:
+            self.feed_config = self.load_feed_config('client.ini')
 
-    # find format of fetched data (json or csv)
-    def find_api_data_format(self, key):
-        apiFileObj = ApiCall(self.feed_name)
-        response = apiFileObj.request_api_data()
-        content_type = response.headers['Content-Type']
+            if 'headers' in self.feed_config and self.feed_config['headers']:
+                headers = json.loads(self.feed_config['headers'])
+            else:
+                headers = None
+
+            if 'params' in self.feed_config and self.feed_config['params']:
+                params = json.loads(self.feed_config['params'])
+            else:
+                params = None
+
+            if 'url' not in self.feed_config:
+                print('Error: No URL found in the configuration')
+                return None
+            else:
+                url = self.feed_config['url']
+
+            response = requests.get(url, headers=headers, params=params)
+
+            if response.status_code == 200:
+                return response
+            else:
+                print(f"Error Found: Response code: {response.status_code}")
+        except Exception as e:
+            print(f"Error Found: {e}")
+            return None
+
+    # Find format of fetched data (JSON or CSV)
+    def find_api_data_format(self):
+        response = self.request_api_data()
+        self.feed_config = self.load_feed_config('client.ini')
+        if 'key' in self.feed_config:
+            key = self.feed_config['key']
+        else:
+            key = None
+        content_type = response.headers.get('Content-Type')
         if 'json' in content_type:
             data = response.json()
-            df = pd.DataFrame(data[key])
+            if key is not None and key in data:
+                df = pd.json_normalize(data[key])
+            else:
+                df = pd.DataFrame(data)
             return df
         else:
             data = response.content.decode('utf-8')
             df = pd.read_csv(io.StringIO(data))
             return df
-        
+
     # upload files on s3 bucket    
     def upload_to_s3(self, bucket_name, access_key, secret_access_key, default_region, key, body):
         try:
@@ -89,3 +118,17 @@ class Utilities:
             s3_transfer.upload_obj(key, body)
         except Exception as e:
             print(f'Error while loading files on s3: {e}')
+
+    # if date_column is None 
+    def if_dateColumn_not_exists(self, df, columns, bucket_name, access_key, secret_access_key, default_region):
+        try:
+            feed_config = self.load_feed_config('client.ini')
+            s3_location = feed_config.get('s3_location')
+            file_name = f'{self.feed_name}.csv'
+            if df is None:
+                return None
+            csv_file = df[columns].to_csv(index=False).encode('utf-8')
+            s3_key = f'{s3_location}{file_name}'
+            self.upload_to_s3(bucket_name, access_key, secret_access_key, default_region, key=s3_key, body=csv_file)
+        except Exception as e:
+            print(f'Error While loading files on s3: {e}')
