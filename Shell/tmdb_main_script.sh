@@ -14,24 +14,24 @@ log_error() {
 
 #Extracting Data on S3
 STEP_NUMBER='1'
-    if [ $# -eq 0 ]; then
-        cd $PYTHON_DIR
-        feed_name='git'
-        python3 $PYTHON_DIR/myPractice.py feed_name=$feed_name
-        
-        if [[ $# -ne 0 ]]; then
-            log_error $STEP_NUMBER "Error while loading on S3"
-        fi
-        echo "Data Successfully Extracted"
-    fi
+	if [ $# -eq 0 ]; then
+		cd $PYTHON_DIR
+		feed_name='tmdb'
+		python3 $PYTHON_DIR/myPractice.py feed_name=$feed_name
+		
+		if [[ $# -ne 0 ]]; then
+			log_error $STEP_NUMBER "Error while loading on S3"
+		fi
+		echo "Data Successfully Extracted"
+	fi
 
 #Loading Extracted Data on Snowflake
 STEP_NUMBER='2'
-    if [[ $# -eq 0 ]]; then
-        cd $SHELL_DIR
-        bash $SHELL_DIR/git_etl_script.sh
+	if [[ $# -eq 0 ]]; then
+		cd $SHELL_DIR
+		bash $SHELL_DIR/tmdb_etl_script.sh
 
-        if [[ $# -ne 0 ]]; then
-            log_error $STEP_NUMBER "Error while loading S3 to Snowflake Tables"
-        fi
-    fi
+		if [[ $# -ne 0 ]]; then
+			log_error $STEP_NUMBER "Error while loading S3 to Snowflake Tables"
+		fi
+	fi
