@@ -5,7 +5,7 @@ import sys
 
 class FeedDownloader:
     def __init__(self, feed_name):
-        self.feed_name = 
+        self.feed_name = feed_name
         self.utilityObj = Utilities(self.feed_name)
         self.feed_config = self.utilityObj.load_feed_config('client.ini')
         self.system_config = self.utilityObj.load_system_config('config.ini')
