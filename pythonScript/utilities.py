@@ -6,6 +6,8 @@ import io
 import json
 import requests
 import pandas as pd
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Utilities:
